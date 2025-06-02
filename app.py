@@ -80,7 +80,7 @@ st.markdown("""
 class FintechNewsGenerator:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
     
     def get_fintech_news(self) -> List[Dict]:
         """Generate fintech news using Gemini AI"""

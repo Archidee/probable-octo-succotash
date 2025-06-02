@@ -112,30 +112,37 @@ def generate_marketing_news_with_ai(api_key):
         model = genai.GenerativeModel('gemini-2.0-flash')
         
         prompt = f"""
-        Generate exactly 5 crisp marketing news items specifically for India market for {datetime.now().strftime('%B %d, %Y')}. 
+        Create exactly 5 marketing news items for India on {datetime.now().strftime('%B %d, %Y')}. 
         
-        Format each news item as:
-        TITLE: [Engaging title under 60 characters]
-        CONTENT: [Brief description under 120 characters with key insights]
+        For each item, provide:
+        - A compelling headline (max 50 characters)
+        - A brief description (max 100 characters)
         
-        Focus on:
-        - Digital marketing trends in India
-        - Brand campaigns and launches
-        - Consumer behavior insights
-        - Marketing technology updates
-        - Social media marketing trends
-        - E-commerce marketing strategies
+        Focus on current trends in:
+        - Digital marketing in India
+        - Brand campaigns and consumer insights
+        - Social media and e-commerce marketing
+        - Marketing technology and AI adoption
+        - Regional marketing strategies
         
-        Make them current, relevant, and actionable for Indian marketers.
-        
-        Return in this exact format:
-        1. TITLE: [title]
-        CONTENT: [content]
-        
-        2. TITLE: [title]
-        CONTENT: [content]
-        
-        And so on...
+        Format your response exactly like this example:
+
+        1. TITLE: AI Marketing Tools Boost ROI by 35%
+        CONTENT: Indian startups adopting AI-driven marketing see higher conversions and reduced costs.
+
+        2. TITLE: Regional Content Drives 50% More Engagement  
+        CONTENT: Brands using local languages in campaigns outperform English-only content significantly.
+
+        3. TITLE: Social Commerce Hits ₹4 Lakh Crore Mark
+        CONTENT: Instagram Shopping and WhatsApp Business drive massive growth in social selling.
+
+        4. TITLE: Video Marketing Budgets Double This Year
+        CONTENT: Short-form video content becomes top priority for 80% of Indian marketers.
+
+        5. TITLE: Voice Search Changes Local Marketing Game
+        CONTENT: 60% of consumers use voice search for local business discovery and reviews.
+
+        Please follow this exact format with TITLE: and CONTENT: labels.
         """
         
         response = model.generate_content(prompt)
@@ -146,22 +153,58 @@ def generate_marketing_news_with_ai(api_key):
         return None
 
 def parse_ai_response(response_text):
-    """Parse AI response into structured news items"""
+    """Parse AI response into structured news items with improved error handling"""
     news_items = []
-    lines = response_text.strip().split('\n')
     
+    # Try multiple parsing strategies
+    if not response_text:
+        return []
+    
+    # Strategy 1: Look for numbered items with TITLE/CONTENT format
+    lines = response_text.strip().split('\n')
     current_item = {}
+    
     for line in lines:
         line = line.strip()
-        if line.startswith('TITLE:'):
-            if current_item:
+        if not line:
+            continue
+            
+        if line.startswith('TITLE:') or 'TITLE:' in line:
+            if current_item and 'title' in current_item and 'content' in current_item:
                 news_items.append(current_item)
-            current_item = {'title': line.replace('TITLE:', '').strip()}
-        elif line.startswith('CONTENT:'):
-            current_item['content'] = line.replace('CONTENT:', '').strip()
+            title = line.split('TITLE:')[-1].strip()
+            current_item = {'title': title}
+        elif line.startswith('CONTENT:') or 'CONTENT:' in line:
+            if current_item:
+                content = line.split('CONTENT:')[-1].strip()
+                current_item['content'] = content
     
-    if current_item:
+    # Add the last item
+    if current_item and 'title' in current_item and 'content' in current_item:
         news_items.append(current_item)
+    
+    # Strategy 2: If first strategy didn't work, try simpler parsing
+    if len(news_items) < 3:
+        news_items = []
+        # Split by numbered items
+        sections = response_text.split('\n\n')
+        for section in sections:
+            if len(news_items) >= 5:
+                break
+            lines = section.strip().split('\n')
+            if len(lines) >= 2:
+                title = lines[0].strip()
+                # Clean up title (remove numbers, bullets, etc.)
+                title = title.lstrip('0123456789. -•').strip()
+                if title.startswith('TITLE:'):
+                    title = title.replace('TITLE:', '').strip()
+                
+                content = ' '.join(lines[1:]).strip()
+                if content.startswith('CONTENT:'):
+                    content = content.replace('CONTENT:', '').strip()
+                
+                if title and content and len(title) > 10:
+                    news_items.append({'title': title, 'content': content})
     
     return news_items[:5]  # Ensure we only get 5 items
 
@@ -241,15 +284,20 @@ def main():
         with st.spinner("🤖 Generating fresh marketing insights..."):
             ai_response = generate_marketing_news_with_ai(st.session_state['api_key'])
             if ai_response:
+                # Show raw response for debugging (remove in production)
+                with st.expander("🔍 Debug: AI Response"):
+                    st.text(ai_response)
+                
                 news_items = parse_ai_response(ai_response)
-                if len(news_items) == 5:
+                if len(news_items) >= 3:  # Accept if we get at least 3 items
                     st.session_state['news_items'] = news_items
                     st.session_state['generate_fresh'] = False
-                    st.success("✅ Fresh content generated!")
+                    st.success(f"✅ Generated {len(news_items)} fresh marketing insights!")
                 else:
-                    st.warning("Using default content due to parsing issues")
+                    st.warning(f"⚠️ Only parsed {len(news_items)} items. Using default content.")
                     st.session_state['news_items'] = default_news
             else:
+                st.error("❌ Failed to generate content. Using default content.")
                 st.session_state['news_items'] = default_news
     
     # Use stored news items or default
@@ -273,7 +321,7 @@ def main():
             img.save(img_buffer, format='PNG')
             img_buffer.seek(0)
             
-            st.image(img_buffer, use_container_width=True)
+            st.image(img_buffer, use_column_width=True)
             
             # Download button for individual card
             st.download_button(

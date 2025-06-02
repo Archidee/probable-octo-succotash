@@ -109,7 +109,7 @@ def generate_marketing_news_with_ai(api_key):
     genai.configure(api_key=api_key)
     
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash-preview-image-generation')
         
         prompt = f"""
         Generate exactly 5 crisp marketing news items specifically for India market for {datetime.now().strftime('%B %d, %Y')}. 

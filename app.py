@@ -273,7 +273,7 @@ def main():
             img.save(img_buffer, format='PNG')
             img_buffer.seek(0)
             
-            st.image(img_buffer, use_column_width=True)
+            st.image(img_buffer, use_container_width=True)
             
             # Download button for individual card
             st.download_button(

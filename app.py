@@ -104,7 +104,7 @@ def configure_genai(api_key):
 def get_fintech_news(api_key):
     """Generate fintech and marketing news using Google AI"""
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
         
         prompt = f"""
         Generate exactly 5 crisp, current fintech and marketing news items specifically for India for {datetime.now().strftime('%B %d, %Y')}. 
